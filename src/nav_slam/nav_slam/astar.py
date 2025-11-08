@@ -84,29 +84,153 @@ def bezier_smoothing(array, num_points):
         path = array
     return path
 
-# A*算法
-def astar(start, goal, grid):
+# Hybrid A*算法
+def hybrid_astar(start, goal, grid):
+    """
+    Hybrid A* 算法实现
+    考虑了车辆的运动学约束和方向信息
+    状态空间: (x, y, theta)
+    """
     def heuristic(a, b):
-        return math.sqrt((a[0] - b[0])**2 + (a[1] - b[1])**2)  # 使用欧几里得距离作为启发式函数
+        # 使用欧几里得距离作为启发式函数（非完全一致性启发式）
+        return math.sqrt((a[0] - b[0])**2 + (a[1] - b[1])**2)
+    
+    def normalize_angle(angle):
+        """将角度归一化到 [-pi, pi] 范围"""
+        while angle > math.pi:
+            angle -= 2 * math.pi
+        while angle < -math.pi:
+            angle += 2 * math.pi
+        return angle
+    
+    rows, cols = grid.shape
+    
+    # 运动原语：定义车辆可能的运动（前进、左转、右转）
+    # 每个运动原语: (距离, 转向角度变化)
+    # 考虑差速驱动机器人的运动特性
+    motion_primitives = [
+        (1.0, 0.0),           # 直行
+        (1.0, math.pi/6),     # 左转30度
+        (1.0, -math.pi/6),    # 右转30度
+        (1.0, math.pi/4),     # 左转45度
+        (1.0, -math.pi/4),    # 右转45度
+        (0.5, math.pi/3),     # 小距离左急转
+        (0.5, -math.pi/3),    # 小距离右急转
+    ]
+    
+    # 初始状态：(row, col, theta)
+    # 初始方向指向目标
+    initial_theta = math.atan2(goal[0] - start[0], goal[1] - start[1])
+    start_state = (start[0], start[1], initial_theta)
+    goal_state = (goal[0], goal[1], 0)  # 目标方向不重要
+    
+    # 离散化角度的数量（将360度分成72个方向，每个5度）
+    angle_bins = 72
+    angle_resolution = 2 * math.pi / angle_bins
+    
+    def discretize_state(state):
+        """将连续状态离散化，用于查找表"""
+        angle_idx = int((normalize_angle(state[2]) + math.pi) / angle_resolution) % angle_bins
+        return (int(state[0]), int(state[1]), angle_idx)
+    
+    open_set = []
+    heapq.heappush(open_set, (0 + heuristic(start_state, goal_state), 0, start_state))
+    came_from = {}
+    cost_so_far = {discretize_state(start_state): 0}
+    closed_set = set()
+    
+    while open_set:
+        _, current_cost, current = heapq.heappop(open_set)
+        current_discrete = discretize_state(current)
+        
+        # 检查是否到达目标（只考虑位置，不考虑方向）
+        if abs(current[0] - goal[0]) <= 1 and abs(current[1] - goal[1]) <= 1:
+            # 构建路径
+            path = [(int(current[0]), int(current[1]))]
+            current_key = current_discrete
+            while current_key in came_from:
+                current_key = came_from[current_key]
+                path.append((int(current_key[0]), int(current_key[1])))
+            path.reverse()
+            return path
+        
+        if current_discrete in closed_set:
+            continue
+        closed_set.add(current_discrete)
+        
+        # 应用运动原语生成后继状态
+        for distance, delta_theta in motion_primitives:
+            # 计算新的方向
+            new_theta = normalize_angle(current[2] + delta_theta)
+            
+            # 计算新的位置
+            # 使用当前方向和新方向的平均值来计算移动
+            avg_theta = (current[2] + new_theta) / 2
+            new_row = current[0] + distance * math.cos(avg_theta)
+            new_col = current[1] + distance * math.sin(avg_theta)
+            
+            # 检查边界
+            if not (0 <= int(new_row) < rows and 0 <= int(new_col) < cols):
+                continue
+            
+            # 检查碰撞
+            if grid[int(new_row), int(new_col)] == 100:
+                continue
+            
+            # 检查路径上的碰撞（插值检查）
+            collision = False
+            steps = int(distance / 0.5) + 1
+            for i in range(1, steps + 1):
+                t = i / steps
+                check_row = int(current[0] + t * (new_row - current[0]))
+                check_col = int(current[1] + t * (new_col - current[1]))
+                if 0 <= check_row < rows and 0 <= check_col < cols:
+                    if grid[check_row, check_col] == 100:
+                        collision = True
+                        break
+            
+            if collision:
+                continue
+            
+            new_state = (new_row, new_col, new_theta)
+            new_discrete = discretize_state(new_state)
+            
+            # 计算代价：考虑距离和转向惩罚
+            move_cost = distance * grid[int(new_row), int(new_col)]
+            turn_cost = abs(delta_theta) * 0.5  # 转向惩罚
+            new_cost = cost_so_far[current_discrete] + move_cost + turn_cost
+            
+            if new_discrete not in cost_so_far or new_cost < cost_so_far[new_discrete]:
+                cost_so_far[new_discrete] = new_cost
+                priority = new_cost + heuristic(new_state, goal_state)
+                heapq.heappush(open_set, (priority, new_cost, new_state))
+                came_from[new_discrete] = current_discrete
+    
+    # 如果 Hybrid A* 没有找到路径，回退到简单的 A* 算法
+    return astar_fallback(start, goal, grid)
+
+# A*算法（作为后备方案）
+def astar_fallback(start, goal, grid):
+    def heuristic(a, b):
+        return math.sqrt((a[0] - b[0])**2 + (a[1] - b[1])**2)
     rows, cols = grid.shape
     open_set = []
     heapq.heappush(open_set, (0 + heuristic(start, goal), 0, start))
     came_from = {}
     cost_so_far = {start: 0}
-    closed_set = set()  # 使用集合来存储已访问的节点
+    closed_set = set()
     while open_set:
         _, current_cost, current = heapq.heappop(open_set)
         if current == goal:
-            # 构建路径
             path = [current]
             while current in came_from:
                 current = came_from[current]
                 path.append(current)
             path.reverse()
             return path
-        if current in closed_set:  # 检查节点是否已被访问过
+        if current in closed_set:
             continue
-        closed_set.add(current)  # 标记为已访问
+        closed_set.add(current)
         for d in [(1, 0), (-1, 0), (0, 1), (0, -1), (1, 1), (1, -1), (-1, 1), (-1, -1)]:
             neighbor = (current[0] + d[0], current[1] + d[1])
             if 0 <= neighbor[0] < rows and 0 <= neighbor[1] < cols and grid[neighbor] != 100:
@@ -116,7 +240,7 @@ def astar(start, goal, grid):
                     priority = new_cost + heuristic(goal, neighbor)
                     heapq.heappush(open_set, (priority, new_cost, neighbor))
                     came_from[neighbor] = current
-    return []  # No path found
+    return []
 
 # 导航控制节点类
 class NavigationControl(Node):
@@ -164,7 +288,7 @@ class NavigationControl(Node):
             data[(data < -2) | (data > 5)] = 100 #根据地图信息标记
             start = (row, column)
             goal = (rowH, columnH)
-            path = astar(start, goal, data)
+            path = hybrid_astar(start, goal, data)
             paths = [(p[1] * resolution + originX, p[0] * resolution + originY) for p in path]
             self.path =paths
             self.path2 = bezier_smoothing(paths, len(paths))  # 减少平滑后的点数
