@@ -25,6 +25,7 @@ setup(
     entry_points={
         'console_scripts': [
             'astar = nav_slam.astar:main',
+            'hybrid_astar = nav_slam.hybrid_astar:main',
             'map_pub = nav_slam.map_pub:main',
             'odom_map_tf = nav_slam.odom_map_tf:main',
             'points_pub_map = nav_slam.points_pub_map:main',
