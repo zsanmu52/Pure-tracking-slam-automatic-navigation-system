@@ -1,0 +1,85 @@
+# Ackermann Vehicle Parameters
+# 阿克曼车辆参数配置
+
+vehicle:
+  # Wheelbase - distance between front and rear axles (meters)
+  # 轴距 - 前后轴之间的距离（米）
+  wheel_base: 0.5
+  
+  # Track width - distance between left and right wheels (meters)
+  # 轮距 - 左右轮之间的距离（米）
+  wheel_separation: 0.4
+  
+  # Wheel diameter (meters)
+  # 轮子直径（米）
+  wheel_diameter: 0.16
+  
+  # Minimum turning radius (meters)
+  # 最小转弯半径（米）
+  min_turning_radius: 1.5
+  
+  # Maximum steering angle (radians)
+  # 最大转向角（弧度）
+  max_steering_angle: 0.6
+  
+  # Maximum speed (m/s)
+  # 最大速度（米/秒）
+  max_speed: 2.0
+  
+  # Maximum acceleration (m/s^2)
+  # 最大加速度（米/秒²）
+  max_acceleration: 1.0
+
+hybrid_astar:
+  # Grid resolution for discretization (meters)
+  # 网格分辨率（米）
+  grid_resolution: 0.2
+  
+  # Angle resolution for discretization (degrees)
+  # 角度分辨率（度）
+  angle_resolution: 15.0
+  
+  # Maximum number of iterations
+  # 最大迭代次数
+  max_iterations: 3000
+  
+  # Goal tolerance (meters)
+  # 目标容差（米）
+  goal_tolerance: 0.5
+  
+  # Obstacle expansion size (grid cells)
+  # 障碍物膨胀大小（网格单元）
+  obstacle_expansion: 5
+  
+  # Motion primitives step size
+  # 运动原语步长
+  motion_step_size: 0.3
+  
+  # Steering penalty weight
+  # 转向惩罚权重
+  steering_penalty: 0.5
+
+pure_pursuit:
+  # Lookahead distance (meters)
+  # 前视距离（米）
+  lookahead_distance: 0.5
+  
+  # Minimum lookahead distance (meters)
+  # 最小前视距离（米）
+  min_lookahead: 0.3
+  
+  # Maximum lookahead distance (meters)
+  # 最大前视距离（米）
+  max_lookahead: 2.0
+  
+  # Goal tolerance (meters)
+  # 目标容差（米）
+  goal_tolerance: 0.2
+  
+  # Minimum speed (m/s)
+  # 最小速度（米/秒）
+  min_speed: 0.6
+  
+  # Maximum speed (m/s)
+  # 最大速度（米/秒）
+  max_speed: 1.5

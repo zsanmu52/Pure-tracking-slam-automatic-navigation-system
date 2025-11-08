@@ -1,0 +1,10 @@
+# Python dependencies for Pure-tracking-slam-automatic-navigation-system
+# 安装方法 / Installation: pip3 install -r requirements.txt
+
+# Core scientific computing
+numpy>=1.21.0
+scipy>=1.7.0
+
+# Optional dependencies for development
+# matplotlib>=3.3.0  # For visualization during development
+# pytest>=6.2.0      # For testing
